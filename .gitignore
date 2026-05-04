@@ -1,0 +1,22 @@
+## Build output
+**/bin/
+**/obj/
+
+## NuGet
+*.nupkg
+*.snupkg
+**/.nuget/
+
+## VS / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+## dotnet secrets
+**/secrets.json
+
+## OS
+.DS_Store
+Thumbs.db
