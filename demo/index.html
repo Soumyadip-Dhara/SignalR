@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Common SignalR Hub – Demo Client</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    h1 { font-size: 1.6rem; margin-bottom: 4px; color: #7dd3fc; }
+    .subtitle { font-size: .9rem; color: #94a3b8; margin-bottom: 24px; }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 { font-size: 1rem; color: #7dd3fc; margin-bottom: 12px; }
+
+    label { display: block; font-size: .8rem; color: #94a3b8; margin-bottom: 4px; }
+
+    input, textarea, select {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      color: #e2e8f0;
+      padding: 8px 10px;
+      font-size: .9rem;
+      margin-bottom: 10px;
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    button {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      transition: opacity .15s;
+    }
+    button:hover { opacity: .85; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-danger  { background: #ef4444; color: #fff; }
+    .btn-success { background: #22c55e; color: #fff; }
+    .btn-warn    { background: #f59e0b; color: #000; }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .85rem;
+      margin-bottom: 16px;
+    }
+
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      flex-shrink: 0;
+    }
+    .dot.connected { background: #22c55e; }
+
+    .log {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 12px;
+      height: 280px;
+      overflow-y: auto;
+      font-size: .82rem;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    .log-entry { padding: 4px 0; border-bottom: 1px solid #1e293b; }
+    .log-entry.info    { color: #7dd3fc; }
+    .log-entry.success { color: #4ade80; }
+    .log-entry.warn    { color: #fbbf24; }
+    .log-entry.error   { color: #f87171; }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row button { flex-shrink: 0; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+
+    .tag {
+      display: inline-block;
+      background: #334155;
+      color: #7dd3fc;
+      border-radius: 4px;
+      padding: 1px 8px;
+      font-size: .75rem;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🔔 Common SignalR Hub</h1>
+<p class="subtitle">
+  Demo client – connect from any application and receive real-time notifications
+  published by any other application (e.g. document storage upload events).
+</p>
+
+<!-- ── Connection ─────────────────────────────────────────────────── -->
+<div class="card">
+  <h2>Connection</h2>
+
+  <label>Hub URL</label>
+  <input id="hubUrl" type="text" value="http://localhost:5000/hubs/notifications" />
+
+  <div class="status-bar">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Disconnected</span>
+  </div>
+
+  <div class="row">
+    <button class="btn-primary" id="btnConnect">Connect</button>
+    <button class="btn-danger"  id="btnDisconnect" disabled>Disconnect</button>
+  </div>
+</div>
+
+<!-- ── Channels ───────────────────────────────────────────────────── -->
+<div class="card">
+  <h2>Channel subscriptions</h2>
+  <label>Channel name (e.g. <span class="tag">document-upload</span>)</label>
+  <div class="row">
+    <input id="channelInput" type="text" placeholder="document-upload" style="flex:1;margin-bottom:0" />
+    <button class="btn-success" id="btnJoin"  disabled>Join</button>
+    <button class="btn-warn"    id="btnLeave" disabled>Leave</button>
+  </div>
+</div>
+
+<!-- ── Publish a test notification ──────────────────────────────── -->
+<div class="card">
+  <h2>Publish test notification (via REST API)</h2>
+  <p style="font-size:.8rem;color:#94a3b8;margin-bottom:12px">
+    Simulates a backend service (e.g. your document storage app) calling
+    <span class="tag">POST /api/notifications/publish</span>.
+  </p>
+
+  <div class="grid2">
+    <div>
+      <label>Channel</label>
+      <input id="pubChannel" type="text" value="document-upload" />
+
+      <label>Event type</label>
+      <input id="pubEventType" type="text" value="upload-success" />
+
+      <label>Message</label>
+      <input id="pubMessage" type="text" value="Invoice_Q1.pdf uploaded successfully." />
+    </div>
+    <div>
+      <label>Payload (JSON)</label>
+      <textarea id="pubPayload">{ "documentId": "doc-001", "fileName": "Invoice_Q1.pdf", "sizeKb": 142 }</textarea>
+
+      <label>X-Api-Key (leave blank if none configured)</label>
+      <input id="pubApiKey" type="text" placeholder="your-api-key" />
+    </div>
+  </div>
+
+  <button class="btn-primary" id="btnPublish">Publish notification</button>
+</div>
+
+<!-- ── Event log ──────────────────────────────────────────────────── -->
+<div class="card">
+  <h2>Event log</h2>
+  <div class="log" id="log"></div>
+</div>
+
+<!-- SignalR client library (CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"
+        integrity="sha512-z4PhNX7vuL3xVChQ1m2AB9Yg5AULVxXcg/SpIdNs6c5H0NE8XYXysP+DGNKHfuwvY7kxvUdBeoGlODJ6+SfaPg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+  /* ── DOM refs ─────────────────────────────────────────────────────────── */
+  const hubUrlEl     = document.getElementById('hubUrl');
+  const statusDot    = document.getElementById('statusDot');
+  const statusText   = document.getElementById('statusText');
+  const btnConnect   = document.getElementById('btnConnect');
+  const btnDisconnect= document.getElementById('btnDisconnect');
+  const channelInput = document.getElementById('channelInput');
+  const btnJoin      = document.getElementById('btnJoin');
+  const btnLeave     = document.getElementById('btnLeave');
+  const pubChannel   = document.getElementById('pubChannel');
+  const pubEventType = document.getElementById('pubEventType');
+  const pubMessage   = document.getElementById('pubMessage');
+  const pubPayload   = document.getElementById('pubPayload');
+  const pubApiKey    = document.getElementById('pubApiKey');
+  const btnPublish   = document.getElementById('btnPublish');
+  const logEl        = document.getElementById('log');
+
+  let connection = null;
+
+  /* ── Log helper ──────────────────────────────────────────────────────── */
+  function log(msg, type = 'info') {
+    const ts = new Date().toLocaleTimeString();
+    const el = document.createElement('div');
+    el.className = `log-entry ${type}`;
+    el.textContent = `[${ts}] ${msg}`;
+    logEl.prepend(el);
+  }
+
+  /* ── UI state helper ─────────────────────────────────────────────────── */
+  function setConnected(yes) {
+    statusDot.className  = 'dot' + (yes ? ' connected' : '');
+    statusText.textContent = yes ? 'Connected' : 'Disconnected';
+    btnConnect.disabled    = yes;
+    btnDisconnect.disabled = !yes;
+    btnJoin.disabled       = !yes;
+    btnLeave.disabled      = !yes;
+  }
+
+  /* ── Connect ─────────────────────────────────────────────────────────── */
+  btnConnect.addEventListener('click', async () => {
+    const url = hubUrlEl.value.trim();
+    if (!url) { log('Hub URL is required.', 'error'); return; }
+
+    connection = new signalR.HubConnectionBuilder()
+      .withUrl(url)
+      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Warning)
+      .build();
+
+    /* ── Hub events ─────────────────────────────────────────────────────── */
+    connection.on('JoinedChannel', ch => log(`✅ Joined channel: ${ch}`, 'success'));
+    connection.on('LeftChannel',   ch => log(`↩️ Left channel: ${ch}`,   'warn'));
+
+    connection.on('ReceiveNotification', notification => {
+      log(
+        `📨 [${notification.channel}] ${notification.eventType}: ${notification.message}` +
+        (notification.payload ? `\n   payload: ${JSON.stringify(notification.payload)}` : ''),
+        'success'
+      );
+    });
+
+    connection.onclose(err => {
+      setConnected(false);
+      log('Connection closed.' + (err ? ' ' + err.message : ''), 'warn');
+    });
+
+    connection.onreconnecting(err => log('Reconnecting… ' + (err?.message ?? ''), 'warn'));
+    connection.onreconnected(id => { setConnected(true); log('Reconnected. ID: ' + id, 'success'); });
+
+    try {
+      await connection.start();
+      setConnected(true);
+      log('Connected to hub: ' + url, 'success');
+    } catch (err) {
+      log('Connection failed: ' + err.message, 'error');
+    }
+  });
+
+  /* ── Disconnect ──────────────────────────────────────────────────────── */
+  btnDisconnect.addEventListener('click', async () => {
+    if (connection) {
+      await connection.stop();
+      connection = null;
+    }
+    setConnected(false);
+  });
+
+  /* ── Join / Leave channel ────────────────────────────────────────────── */
+  btnJoin.addEventListener('click', async () => {
+    const ch = channelInput.value.trim();
+    if (!ch) { log('Enter a channel name.', 'error'); return; }
+    try { await connection.invoke('JoinChannel', ch); }
+    catch (err) { log('JoinChannel error: ' + err.message, 'error'); }
+  });
+
+  btnLeave.addEventListener('click', async () => {
+    const ch = channelInput.value.trim();
+    if (!ch) { log('Enter a channel name.', 'error'); return; }
+    try { await connection.invoke('LeaveChannel', ch); }
+    catch (err) { log('LeaveChannel error: ' + err.message, 'error'); }
+  });
+
+  /* ── Publish via REST ────────────────────────────────────────────────── */
+  btnPublish.addEventListener('click', async () => {
+    const hubBase = hubUrlEl.value.replace('/hubs/notifications', '');
+
+    let payload = null;
+    try {
+      payload = pubPayload.value.trim() ? JSON.parse(pubPayload.value) : null;
+    } catch {
+      log('Payload must be valid JSON.', 'error');
+      return;
+    }
+
+    const headers = { 'Content-Type': 'application/json' };
+    const apiKey = pubApiKey.value.trim();
+    if (apiKey) headers['X-Api-Key'] = apiKey;
+
+    try {
+      const res = await fetch(`${hubBase}/api/notifications/publish`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          channel:   pubChannel.value.trim(),
+          eventType: pubEventType.value.trim(),
+          message:   pubMessage.value.trim(),
+          payload
+        })
+      });
+      const data = await res.json();
+      if (data.success)
+        log(`🚀 Published to "${pubChannel.value}" – ${data.message}`, 'success');
+      else
+        log(`❌ Publish failed: ${data.message}`, 'error');
+    } catch (err) {
+      log('Publish error: ' + err.message, 'error');
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SignalRHub.Tests/SignalRHub.Tests.csproj" />
+    <Project Path="src/SignalRHub/SignalRHub.csproj" />
+  </Folder>
+</Solution>
