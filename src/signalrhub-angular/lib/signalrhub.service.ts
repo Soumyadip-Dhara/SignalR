@@ -1,7 +1,7 @@
 import { Inject, Injectable, OnDestroy } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { filter, map } from 'rxjs/operators';
+import { filter, first, map } from 'rxjs/operators';
 
 import { NotificationMessage } from './notification-message.model';
 import { SIGNALR_HUB_CONFIG, SignalRHubConfig } from './signalrhub.config';
@@ -142,6 +142,32 @@ export class SignalRHubService implements OnDestroy {
   }
 
   // ── Observables ──────────────────────────────────────────────────────────────
+
+  /**
+   * Returns an `Observable<void>` that emits **once** as soon as the hub
+   * connection reaches the `'Connected'` state, then completes.
+   *
+   * If the connection is already established when this is called the observable
+   * emits synchronously on subscription (because the underlying source is a
+   * `BehaviorSubject`).
+   *
+   * @example
+   * ```ts
+   * this.hub.connectionReady().subscribe(() => {
+   *   this.hub.joinChannel('document-upload');
+   *   this.hub.onNotification('document-upload').subscribe(n =>
+   *     console.log(n.eventType, n.payload)
+   *   );
+   * });
+   * ```
+   */
+  connectionReady(): Observable<void> {
+    return this._state$.pipe(
+      filter(state => state === 'Connected'),
+      first(),
+      map(() => void 0)
+    );
+  }
 
   /**
    * Returns an `Observable` that emits every notification received from the hub.
