@@ -8,6 +8,9 @@
 npm install signalrhub-angular @microsoft/signalr
 ```
 
+> **Requires Angular ≥ 19.2.20.** Earlier versions of Angular (≤ 18.x) contain unpatched
+> XSS and XSRF vulnerabilities — see the [Angular security advisories](https://github.com/angular/angular/security/advisories).
+
 ## Setup (one call in `AppModule` or `bootstrapApplication`)
 
 ### NgModule approach
