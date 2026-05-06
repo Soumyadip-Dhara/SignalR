@@ -165,7 +165,9 @@ export class SignalRHubService implements OnDestroy {
   // ── Lifecycle ────────────────────────────────────────────────────────────────
 
   ngOnDestroy(): void {
-    void this._connection.stop();
+    this._connection.stop().catch(() => {
+      // Suppress errors during cleanup — the process/tab may already be closing.
+    });
     this._notification$.complete();
     this._joinedChannel$.complete();
     this._leftChannel$.complete();
