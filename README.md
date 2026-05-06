@@ -2,6 +2,51 @@
 
 A centralised **ASP.NET Core SignalR** service that acts as the single real-time communication bridge for all your applications.
 
+## 📦 Client Packages
+
+Two ready-made packages let consuming applications integrate with zero boilerplate:
+
+| Package | Ecosystem | Install |
+|---|---|---|
+| **SignalRHub.Client** | .NET / NuGet | `dotnet add package SignalRHub.Client` |
+| **signalrhub-angular** | Angular / npm | `npm install signalrhub-angular @microsoft/signalr` |
+
+See the per-package READMEs for full setup instructions:
+- [`src/SignalRHub.Client/README.md`](src/SignalRHub.Client/README.md) — .NET backend SDK
+- [`src/signalrhub-angular/README.md`](src/signalrhub-angular/README.md) — Angular frontend library
+
+### Quick look — .NET backend
+
+```csharp
+// Program.cs — one line to register the client
+builder.Services.AddSignalRHubClient(builder.Configuration);
+
+// Anywhere in your service layer
+public class DocumentService(ISignalRHubClient hub)
+{
+    public async Task NotifyAsync(string fileName) =>
+        await hub.PublishAsync(new NotificationMessage
+        {
+            Channel   = "document-upload",
+            EventType = "upload-success",
+            Message   = $"{fileName} uploaded successfully."
+        });
+}
+```
+
+### Quick look — Angular frontend
+
+```ts
+// app.module.ts
+SignalRHubModule.forRoot({ hubUrl: 'https://your-hub-host/hubs/notifications' })
+
+// any component
+constructor(private hub: SignalRHubService) {
+  hub.joinChannel('document-upload');
+  hub.onNotification('document-upload').subscribe(n => console.log(n));
+}
+```
+
 ## 📚 Documentation
 
 | Guide | Description |
@@ -45,7 +90,7 @@ A centralised **ASP.NET Core SignalR** service that acts as the single real-time
 
 ```
 SignalR/
-├── docs/                        # 📚 Integration & deployment guides
+├── docs/                              # 📚 Integration & deployment guides
 │   ├── quick-start.md
 │   ├── integrate-frontend.md
 │   ├── integrate-backend.md
@@ -53,21 +98,33 @@ SignalR/
 │   ├── deployment.md
 │   └── api-reference.md
 ├── src/
-│   ├── SignalRHub/              # The hub application (ASP.NET Core 8)
-│   │   ├── Hubs/
-│   │   │   └── NotificationHub.cs
-│   │   ├── Controllers/
-│   │   │   └── NotificationsController.cs
-│   │   ├── Middleware/
-│   │   │   └── ApiKeyMiddleware.cs
-│   │   ├── Models/
-│   │   │   ├── NotificationMessage.cs
-│   │   │   └── HubResponse.cs
+│   ├── SignalRHub/                    # The hub application (ASP.NET Core 8)
+│   │   ├── Hubs/NotificationHub.cs
+│   │   ├── Controllers/NotificationsController.cs
+│   │   ├── Middleware/ApiKeyMiddleware.cs
+│   │   ├── Models/{NotificationMessage,HubResponse}.cs
 │   │   ├── Program.cs
 │   │   └── appsettings.json
-│   └── SignalRHub.Tests/        # xUnit integration & unit tests
+│   ├── SignalRHub.Tests/              # xUnit integration & unit tests
+│   ├── SignalRHub.Client/             # 📦 NuGet: .NET backend client SDK
+│   │   ├── ISignalRHubClient.cs
+│   │   ├── SignalRHubClient.cs
+│   │   ├── SignalRHubClientOptions.cs
+│   │   ├── ServiceCollectionExtensions.cs
+│   │   ├── {NotificationMessage,HubResponse}.cs
+│   │   └── README.md
+│   ├── SignalRHub.Client.Tests/       # Unit tests for the client package
+│   └── signalrhub-angular/            # 📦 npm: Angular frontend library
+│       ├── lib/
+│       │   ├── signalrhub.module.ts
+│       │   ├── signalrhub.service.ts
+│       │   ├── signalrhub.config.ts
+│       │   └── notification-message.model.ts
+│       ├── public-api.ts
+│       ├── package.json
+│       └── README.md
 └── demo/
-    └── index.html               # Browser demo client (no build step)
+    └── index.html                     # Browser demo client (no build step)
 ```
 
 ## Running the hub
@@ -196,7 +253,11 @@ Edit `appsettings.json` (or use environment variables / secrets):
 ## Running the tests
 
 ```bash
+# Hub server tests
 dotnet test src/SignalRHub.Tests
+
+# .NET client package tests
+dotnet test src/SignalRHub.Client.Tests
 ```
 
 ## Demo client
