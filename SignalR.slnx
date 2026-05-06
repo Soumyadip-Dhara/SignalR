@@ -2,5 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/SignalRHub.Tests/SignalRHub.Tests.csproj" />
     <Project Path="src/SignalRHub/SignalRHub.csproj" />
+    <Project Path="src/SignalRHub.Client/SignalRHub.Client.csproj" />
+    <Project Path="src/SignalRHub.Client.Tests/SignalRHub.Client.Tests.csproj" />
   </Folder>
 </Solution>
