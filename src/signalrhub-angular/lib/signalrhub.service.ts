@@ -34,6 +34,9 @@ export class SignalRHubService implements OnDestroy {
 
   private readonly _connection: signalR.HubConnection;
 
+  /** Holds the in-flight start() promise so callers can await it. */
+  private _startPromise: Promise<void> | null = null;
+
   private readonly _state$ = new BehaviorSubject<HubConnectionState>('Disconnected');
 
   /** Emits the current connection state whenever it changes. */
@@ -83,25 +86,32 @@ export class SignalRHubService implements OnDestroy {
   // ── Connection management ────────────────────────────────────────────────────
 
   /**
-   * Start the SignalR connection.  Safe to call multiple times; subsequent
-   * calls while already connected are silently ignored.
+   * Start the SignalR connection.  Safe to call multiple times; returns the
+   * same in-flight promise if a connection attempt is already underway, and
+   * resolves immediately when already connected.
    */
-  async connect(): Promise<void> {
-    if (
-      this._connection.state === signalR.HubConnectionState.Connected ||
-      this._connection.state === signalR.HubConnectionState.Connecting
-    ) {
-      return;
+  connect(): Promise<void> {
+    if (this._connection.state === signalR.HubConnectionState.Connected) {
+      return Promise.resolve();
+    }
+    if (this._startPromise) {
+      return this._startPromise;
     }
     this._state$.next('Connecting');
-    try {
-      await this._connection.start();
-      this._state$.next('Connected');
-    } catch (err) {
-      this._state$.next('Disconnected');
-      console.error('[SignalRHubService] Connection failed:', err);
-      throw err;
-    }
+    this._startPromise = this._connection
+      .start()
+      .then(() => {
+        this._state$.next('Connected');
+      })
+      .catch(err => {
+        this._state$.next('Disconnected');
+        console.error('[SignalRHubService] Connection failed:', err);
+        throw err;
+      })
+      .finally(() => {
+        this._startPromise = null;
+      });
+    return this._startPromise;
   }
 
   /** Stop the SignalR connection. */
@@ -118,6 +128,7 @@ export class SignalRHubService implements OnDestroy {
    * @param channel Channel name (e.g. `'document-upload'`).
    */
   async joinChannel(channel: string): Promise<void> {
+    await this.connect();
     await this._connection.invoke('JoinChannel', channel);
   }
 
@@ -126,6 +137,7 @@ export class SignalRHubService implements OnDestroy {
    * @param channel Channel name.
    */
   async leaveChannel(channel: string): Promise<void> {
+    await this.connect();
     await this._connection.invoke('LeaveChannel', channel);
   }
 
