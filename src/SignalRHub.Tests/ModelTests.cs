@@ -1,3 +1,4 @@
+using SignalRHub.Hubs;
 using SignalRHub.Models;
 
 namespace SignalRHub.Tests;
@@ -30,6 +31,13 @@ public class NotificationMessageTests
     }
 
     [Fact]
+    public void DefaultGroup_IsNull()
+    {
+        var msg = new NotificationMessage();
+        Assert.Null(msg.Group);
+    }
+
+    [Fact]
     public void CanSetAllProperties()
     {
         var payload = new { id = 1 };
@@ -39,6 +47,7 @@ public class NotificationMessageTests
             EventType = "upload-success",
             Message = "File uploaded.",
             Payload = payload,
+            Group = "team-finance",
             TargetUserId = "user-1"
         };
 
@@ -46,6 +55,7 @@ public class NotificationMessageTests
         Assert.Equal("upload-success", msg.EventType);
         Assert.Equal("File uploaded.", msg.Message);
         Assert.Equal(payload, msg.Payload);
+        Assert.Equal("team-finance", msg.Group);
         Assert.Equal("user-1", msg.TargetUserId);
     }
 }
@@ -71,5 +81,38 @@ public class HubResponseTests
         Assert.False(response.Success);
         Assert.Equal("Bad request.", response.Message);
         Assert.Null(response.Data);
+    }
+}
+
+/// <summary>Unit tests for <see cref="NotificationHub"/> helpers.</summary>
+public class NotificationHubTests
+{
+    [Fact]
+    public void BuildGroupKey_CombinesChannelAndGroup()
+    {
+        var key = NotificationHub.BuildGroupKey("document-upload", "team-finance");
+        Assert.Equal("document-upload:team-finance", key);
+    }
+
+    [Theory]
+    [InlineData(null, "group")]
+    [InlineData("", "group")]
+    [InlineData("   ", "group")]
+    [InlineData("channel", null)]
+    [InlineData("channel", "")]
+    [InlineData("channel", "   ")]
+    public void BuildGroupKey_NullOrEmptyInput_Throws(string? channel, string? group)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            NotificationHub.BuildGroupKey(channel!, group!));
+    }
+
+    [Theory]
+    [InlineData("chan:nel", "group")]
+    [InlineData("channel", "gr:oup")]
+    public void BuildGroupKey_ColonInInput_Throws(string channel, string group)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            NotificationHub.BuildGroupKey(channel, group));
     }
 }

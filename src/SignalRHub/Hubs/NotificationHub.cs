@@ -46,6 +46,58 @@ public class NotificationHub : Hub
         await Clients.Caller.SendAsync("LeftChannel", channel);
     }
 
+    /// <summary>
+    /// Subscribe the calling connection to a group inside a channel so that it
+    /// receives only notifications published to that specific group.
+    ///
+    /// Internally the group key is <c>"{channel}:{group}"</c>, which keeps groups
+    /// namespaced per channel and avoids accidental cross-channel collisions.
+    /// </summary>
+    public async Task JoinGroup(string channel, string group)
+    {
+        var groupKey = BuildGroupKey(channel, group);
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupKey);
+        _logger.LogInformation(
+            "Connection {ConnectionId} joined group '{Group}' in channel '{Channel}'",
+            Context.ConnectionId, group, channel);
+
+        await Clients.Caller.SendAsync("JoinedGroup", channel, group);
+    }
+
+    /// <summary>Unsubscribe the calling connection from a channel group.</summary>
+    public async Task LeaveGroup(string channel, string group)
+    {
+        var groupKey = BuildGroupKey(channel, group);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupKey);
+        _logger.LogInformation(
+            "Connection {ConnectionId} left group '{Group}' in channel '{Channel}'",
+            Context.ConnectionId, group, channel);
+
+        await Clients.Caller.SendAsync("LeftGroup", channel, group);
+    }
+
+    /// <summary>
+    /// Builds the internal SignalR group key for a channel + group pair.
+    /// Format: <c>"{channel}:{group}"</c>.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="channel"/> or <paramref name="group"/> is null,
+    /// empty, or contains the <c>':'</c> delimiter (which would create an ambiguous key).
+    /// </exception>
+    public static string BuildGroupKey(string channel, string group)
+    {
+        if (string.IsNullOrWhiteSpace(channel))
+            throw new ArgumentException("Channel must not be null or empty.", nameof(channel));
+        if (string.IsNullOrWhiteSpace(group))
+            throw new ArgumentException("Group must not be null or empty.", nameof(group));
+        if (channel.Contains(':', StringComparison.Ordinal))
+            throw new ArgumentException("Channel must not contain the ':' delimiter.", nameof(channel));
+        if (group.Contains(':', StringComparison.Ordinal))
+            throw new ArgumentException("Group must not contain the ':' delimiter.", nameof(group));
+
+        return $"{channel}:{group}";
+    }
+
     public override async Task OnConnectedAsync()
     {
         _logger.LogInformation("Client connected: {ConnectionId}", Context.ConnectionId);

@@ -28,9 +28,34 @@ public class NotificationMessage
     public object? Payload { get; set; }
 
     /// <summary>
+    /// Optional group identifier within a channel (e.g. a document ID, team name, or
+    /// tenant ID). When set together with <see cref="Channel"/>, the message is
+    /// delivered only to connections that have called
+    /// <c>JoinGroup(channel, group)</c> on the hub, giving fine-grained segregation
+    /// inside a channel.  When omitted the message goes to all channel subscribers.
+    ///
+    /// <para>
+    /// <b>Precedence:</b> when both <see cref="TargetUserId"/> and <see cref="Group"/>
+    /// are set, <see cref="TargetUserId"/> takes priority and <see cref="Group"/> is
+    /// ignored. Set at most one of the two properties.
+    /// </para>
+    ///
+    /// <para>
+    /// The value must not contain the <c>':'</c> character, as that is used
+    /// internally as the channel/group delimiter.
+    /// </para>
+    /// </summary>
+    public string? Group { get; set; }
+
+    /// <summary>
     /// Optional target user identifier. When set, the message is delivered only to
     /// connections belonging to that user; otherwise it is broadcast to all channel
-    /// subscribers.
+    /// subscribers (or to the <see cref="Group"/> sub-group when that is also set).
+    ///
+    /// <para>
+    /// <b>Precedence:</b> <see cref="TargetUserId"/> takes priority over
+    /// <see cref="Group"/>. Set at most one of the two properties.
+    /// </para>
     /// </summary>
     public string? TargetUserId { get; set; }
 

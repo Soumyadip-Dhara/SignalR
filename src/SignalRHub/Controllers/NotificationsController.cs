@@ -72,6 +72,18 @@ public class NotificationsController : ControllerBase
                 "Notification sent to user '{UserId}' on channel '{Channel}' (event: {EventType})",
                 S(notification.TargetUserId), S(notification.Channel), S(notification.EventType));
         }
+        else if (!string.IsNullOrWhiteSpace(notification.Group))
+        {
+            // Send to a specific group inside the channel (sub-channel segregation).
+            var groupKey = NotificationHub.BuildGroupKey(notification.Channel, notification.Group);
+            await _hubContext.Clients
+                .Group(groupKey)
+                .SendAsync("ReceiveNotification", notification);
+
+            _logger.LogInformation(
+                "Notification sent to group '{Group}' on channel '{Channel}' (event: {EventType})",
+                S(notification.Group), S(notification.Channel), S(notification.EventType));
+        }
         else
         {
             // Broadcast to every connection that joined this channel.
