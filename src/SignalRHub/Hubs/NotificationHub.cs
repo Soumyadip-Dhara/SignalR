@@ -80,8 +80,23 @@ public class NotificationHub : Hub
     /// Builds the internal SignalR group key for a channel + group pair.
     /// Format: <c>"{channel}:{group}"</c>.
     /// </summary>
-    public static string BuildGroupKey(string channel, string group) =>
-        $"{channel}:{group}";
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="channel"/> or <paramref name="group"/> is null,
+    /// empty, or contains the <c>':'</c> delimiter (which would create an ambiguous key).
+    /// </exception>
+    public static string BuildGroupKey(string channel, string group)
+    {
+        if (string.IsNullOrWhiteSpace(channel))
+            throw new ArgumentException("Channel must not be null or empty.", nameof(channel));
+        if (string.IsNullOrWhiteSpace(group))
+            throw new ArgumentException("Group must not be null or empty.", nameof(group));
+        if (channel.Contains(':', StringComparison.Ordinal))
+            throw new ArgumentException("Channel must not contain the ':' delimiter.", nameof(channel));
+        if (group.Contains(':', StringComparison.Ordinal))
+            throw new ArgumentException("Group must not contain the ':' delimiter.", nameof(group));
+
+        return $"{channel}:{group}";
+    }
 
     public override async Task OnConnectedAsync()
     {

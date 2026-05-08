@@ -94,10 +94,25 @@ public class NotificationHubTests
         Assert.Equal("document-upload:team-finance", key);
     }
 
-    [Fact]
-    public void BuildGroupKey_PreservesSpecialCharacters()
+    [Theory]
+    [InlineData(null, "group")]
+    [InlineData("", "group")]
+    [InlineData("   ", "group")]
+    [InlineData("channel", null)]
+    [InlineData("channel", "")]
+    [InlineData("channel", "   ")]
+    public void BuildGroupKey_NullOrEmptyInput_Throws(string? channel, string? group)
     {
-        var key = NotificationHub.BuildGroupKey("orders", "tenant:acme-corp");
-        Assert.Equal("orders:tenant:acme-corp", key);
+        Assert.Throws<ArgumentException>(() =>
+            NotificationHub.BuildGroupKey(channel!, group!));
+    }
+
+    [Theory]
+    [InlineData("chan:nel", "group")]
+    [InlineData("channel", "gr:oup")]
+    public void BuildGroupKey_ColonInInput_Throws(string channel, string group)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            NotificationHub.BuildGroupKey(channel, group));
     }
 }
