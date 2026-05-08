@@ -28,6 +28,15 @@ public class NotificationMessage
     public object? Payload { get; set; }
 
     /// <summary>
+    /// Optional group identifier within a channel (e.g. a document ID, team name, or
+    /// tenant ID). When set together with <see cref="Channel"/>, the message is
+    /// delivered only to connections that have called
+    /// <c>JoinGroup(channel, group)</c> on the hub, giving fine-grained segregation
+    /// inside a channel.  When omitted the message goes to all channel subscribers.
+    /// </summary>
+    public string? Group { get; set; }
+
+    /// <summary>
     /// Optional target user identifier. When set, the message is delivered only to
     /// connections belonging to that user; otherwise it is broadcast to all channel
     /// subscribers.

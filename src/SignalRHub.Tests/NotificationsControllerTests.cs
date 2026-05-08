@@ -93,6 +93,44 @@ public class NotificationsControllerTests : IClassFixture<WebApplicationFactory<
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Publish_WithGroup_Returns200WithSuccessTrue()
+    {
+        var message = new NotificationMessage
+        {
+            Channel = "document-upload",
+            EventType = "upload-success",
+            Message = "Invoice.pdf uploaded successfully.",
+            Group = "team-finance",
+            Payload = new { documentId = "doc-002" }
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/notifications/publish", message);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<HubResponse>();
+        Assert.NotNull(body);
+        Assert.True(body.Success);
+    }
+
+    [Fact]
+    public async Task Publish_WithGroup_MissingChannel_Returns400()
+    {
+        var message = new NotificationMessage
+        {
+            Channel = "",           // intentionally blank
+            EventType = "upload-success",
+            Group = "team-finance"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/notifications/publish", message);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<HubResponse>();
+        Assert.NotNull(body);
+        Assert.False(body.Success);
+    }
+
     // ── /api/notifications/broadcast ─────────────────────────────────────────
 
     [Fact]
